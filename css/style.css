@@ -47,6 +47,50 @@
   --tr: 0.2s ease;
 }
 
+/* ── Tema Claro ─────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-base:      #f1f5f9;
+  --bg-surface:   #ffffff;
+  --bg-card:      #ffffff;
+  --bg-card-alt:  #f8fafc;
+  --bg-hover:     #e2e8f0;
+  --bg-input:     #f8fafc;
+  --border:       rgba(0,0,0,0.10);
+  --border-light: rgba(0,0,0,0.06);
+  --border-focus: rgba(59,130,246,0.40);
+  --text-primary:  #0f172a;
+  --text-secondary:#334155;
+  --text-muted:    #94a3b8;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+/* Sidebar permanece escura no tema claro (melhor contraste) */
+[data-theme="light"] #sidebar         { background: #1e293b; }
+[data-theme="light"] .brand-sub       { color: #94a3b8; }
+[data-theme="light"] .nav-item        { color: #94a3b8; }
+[data-theme="light"] .nav-item:hover  { background: rgba(255,255,255,0.08); color: #fff; }
+[data-theme="light"] .nav-item.active { background: rgba(59,130,246,0.15); color: #60a5fa; border-left-color: #60a5fa; }
+[data-theme="light"] .nav-section-label { color: #64748b; }
+[data-theme="light"] .sidebar-footer .upload-zone { color: #94a3b8; border-color: rgba(255,255,255,0.12); }
+[data-theme="light"] .sidebar-footer .upload-zone:hover { color: #60a5fa; }
+
+/* Inputs no tema claro */
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea { background: #fff; color: #0f172a; border-color: #e2e8f0; }
+[data-theme="light"] select option { background: #fff; color: #0f172a; }
+
+/* Scrollbar clara */
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Transição suave entre temas */
+body, #sidebar, .card, .chart-card, .section-card, #header, input, select {
+  transition: background 0.3s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
 /* ── Reset ─────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
