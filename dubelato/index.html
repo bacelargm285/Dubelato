@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dubelato · Dashboard Financeiro</title>
+  <meta name="description" content="Dashboard Executivo Dubelato — Controle Financeiro da Gelateria" />
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/components.css" />
+
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- SheetJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!--  Loading Screen                                              -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div id="loading-screen">
+  <div class="loading-logo">🍨 Dubelato</div>
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Carregando planilha financeira…</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!--  Error Screen                                                -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div id="error-screen">
+  <div class="error-icon">📂</div>
+  <div class="error-title">Planilha não encontrada</div>
+  <div class="error-msg" id="error-msg">
+    Não foi possível carregar o arquivo.
+  </div>
+  <div class="error-hint">
+    Certifique-se de que o arquivo <strong>Controle_Financeiro_Dubelato.xlsx</strong>
+    está na pasta <code>data/</code> e tente novamente.
+  </div>
+  <label class="btn btn-primary" style="margin-top:16px; cursor:pointer;">
+    📂 Carregar Planilha Manualmente
+    <input type="file" id="file-upload" accept=".xlsx,.xls" style="display:none" />
+  </label>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!--  App                                                         -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────── -->
+  <aside id="sidebar">
+
+    <div class="sidebar-brand">
+      <span class="brand-icon">🍨</span>
+      <div class="brand-text">
+        <span class="brand-name">Dubelato</span>
+        <span class="brand-sub">Dashboard Financeiro</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Principal</div>
+
+      <div class="nav-item active" data-page="dashboard">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </div>
+
+      <div class="nav-item" data-page="lancamentos">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Lançamentos</span>
+      </div>
+
+      <div class="nav-item" data-page="historico">
+        <span class="nav-icon">📈</span>
+        <span class="nav-label">Histórico</span>
+      </div>
+
+      <div class="nav-section-label">Gestão</div>
+
+      <div class="nav-item" data-page="estoque">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Estoque</span>
+      </div>
+
+      <div class="nav-item" data-page="boletos">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Boletos</span>
+      </div>
+
+      <div class="nav-item" data-page="calendario">
+        <span class="nav-icon">🗓️</span>
+        <span class="nav-label">Calendário</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <label class="upload-zone">
+        <span>📂</span>
+        <span>Atualizar Planilha</span>
+        <input type="file" id="file-upload" accept=".xlsx,.xls" />
+      </label>
+    </div>
+
+  </aside>
+
+  <!-- ── Main wrapper ────────────────────────────────────────── -->
+  <div id="main-wrapper">
+
+    <!-- Header -->
+    <header id="header">
+      <div class="header-left">
+        <button id="sidebar-toggle" title="Recolher menu">☰</button>
+        <span class="header-title">Dashboard Executivo</span>
+      </div>
+
+      <!-- Filtros globais -->
+      <div class="header-filters">
+        <select id="filter-mes" title="Filtrar por mês">
+          <option value="">Todos os meses</option>
+        </select>
+        <select id="filter-ano" title="Filtrar por ano">
+          <option value="">Todos os anos</option>
+        </select>
+        <select id="filter-categoria" title="Categoria">
+          <option value="">Categoria</option>
+        </select>
+        <select id="filter-conta" title="Conta">
+          <option value="">Conta</option>
+        </select>
+        <select id="filter-pagamento" title="Pagamento">
+          <option value="">Pagamento</option>
+        </select>
+        <select id="filter-tipo" title="Tipo">
+          <option value="">Tipo</option>
+          <option value="Entrada">Entrada</option>
+          <option value="Saída">Saída</option>
+        </select>
+        <input type="text" id="filter-busca" placeholder="🔍 Buscar…" title="Busca livre" />
+        <button id="btn-reset-filters" class="btn btn-ghost" title="Limpar filtros">✕ Limpar</button>
+      </div>
+
+      <!-- Ações -->
+      <div class="header-actions">
+        <button id="btn-export-excel" class="btn btn-ghost" title="Exportar Excel">
+          📥 Excel
+        </button>
+        <button id="btn-export-pdf" class="btn btn-ghost" title="Imprimir / PDF">
+          🖨️ PDF
+        </button>
+      </div>
+    </header>
+
+    <!-- Conteúdo -->
+    <main id="main-content">
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!--  PAGE: DASHBOARD                                       -->
+      <!-- ══════════════════════════════════════════════════════ -->
+      <section id="page-dashboard" class="page-section active">
+
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2>Visão Executiva</h2>
+            <p>Resumo financeiro consolidado · atualiza com a planilha</p>
+          </div>
+        </div>
+
+        <!-- KPIs Linha 1 -->
+        <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom:16px;">
+          <div class="card card-kpi glow-green"  id="kpi-receita"></div>
+          <div class="card card-kpi glow-red"    id="kpi-despesa"></div>
+          <div class="card card-kpi"             id="kpi-lucro"></div>
+          <div class="card card-kpi"             id="kpi-saldo"></div>
+          <div class="card card-kpi"             id="kpi-margem"></div>
+          <div class="card card-kpi"             id="kpi-ticket"></div>
+        </div>
+
+        <!-- KPIs Linha 2 -->
+        <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom:24px;">
+          <div class="card card-kpi"             id="kpi-entradas"></div>
+          <div class="card card-kpi"             id="kpi-saidas"></div>
+          <div class="card card-kpi"             id="kpi-vendas"></div>
+          <div class="card card-kpi glow-orange" id="kpi-boletos-vencer"></div>
+          <div class="card card-kpi"             id="kpi-boletos-vencidos"></div>
+          <div class="card card-kpi"             id="kpi-estoque-qtd"></div>
+        </div>
+
+        <!-- Gráficos linha 1: Receita×Despesa (largo) + Categorias -->
+        <div class="charts-grid charts-2col" style="margin-bottom:16px;">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">Receita × Despesa por Mês</div>
+                <div class="chart-card-sub">Comparativo mensal</div>
+              </div>
+            </div>
+            <div class="chart-container chart-container-md">
+              <canvas id="chart-receita-despesa"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">Gastos por Categoria</div>
+                <div class="chart-card-sub">Distribuição das saídas</div>
+              </div>
+            </div>
+            <div class="chart-container chart-container-md">
+              <canvas id="chart-categorias"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráficos linha 2: Fluxo mensal + Evolução caixa -->
+        <div class="charts-grid charts-2col" style="margin-bottom:16px;">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">Resultado Mensal</div>
+                <div class="chart-card-sub">Lucro/prejuízo por mês</div>
+              </div>
+            </div>
+            <div class="chart-container chart-container-md">
+              <canvas id="chart-fluxo"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">Evolução do Caixa</div>
+                <div class="chart-card-sub">Saldo acumulado diário</div>
+              </div>
+            </div>
+            <div class="chart-container chart-container-md">
+              <canvas id="chart-caixa"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráficos linha 3: Histórico por categoria (largo) -->
+        <div class="charts-grid" style="margin-bottom:16px;">
+          <div class="chart-card chart-full">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">Despesas por Categoria — Histórico Mensal</div>
+                <div class="chart-card-sub">Top categorias empilhadas por mês</div>
+              </div>
+            </div>
+            <div class="chart-container chart-container-lg">
+              <canvas id="chart-hist-cat"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráficos linha 4: Pagamentos -->
+        <div class="charts-grid charts-2col" style="margin-bottom:24px;">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">Receitas por Forma de Pagamento</div>
+              </div>
+            </div>
+            <div class="chart-container chart-container-md">
+              <canvas id="chart-rec-pagamento"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">Despesas por Forma de Pagamento</div>
+              </div>
+            </div>
+            <div class="chart-container chart-container-md">
+              <canvas id="chart-sai-pagamento"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top despesas + receitas -->
+        <div class="charts-grid charts-2col" style="margin-bottom: 0;">
+          <div class="section-card">
+            <div class="section-card-header">
+              <span class="section-card-title">🔴 Top Despesas por Categoria</span>
+            </div>
+            <div class="section-card-body-flush" id="tbl-top-despesas"></div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-card-header">
+              <span class="section-card-title">🟢 Top Receitas por Categoria</span>
+            </div>
+            <div class="section-card-body-flush" id="tbl-top-receitas"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!--  PAGE: LANÇAMENTOS                                     -->
+      <!-- ══════════════════════════════════════════════════════ -->
+      <section id="page-lancamentos" class="page-section">
+
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2>Lançamentos</h2>
+            <p>Todos os registros financeiros — filtrados em tempo real</p>
+          </div>
+        </div>
+
+        <div id="lancamentos-info" class="summary-row" style="margin-bottom:16px;"></div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title">📋 Registros</span>
+          </div>
+          <div class="section-card-body-flush" id="tbl-lancamentos"></div>
+          <div class="section-card-body" id="tbl-lancamentos-pagination"></div>
+        </div>
+
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!--  PAGE: ESTOQUE                                         -->
+      <!-- ══════════════════════════════════════════════════════ -->
+      <section id="page-estoque" class="page-section">
+
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2>Estoque</h2>
+            <p>Controle de insumos, embalagens e consumíveis</p>
+          </div>
+        </div>
+
+        <div class="kpi-grid kpi-grid-4" style="margin-bottom:20px;">
+          <div class="card card-kpi" id="kpi-est-total"></div>
+          <div class="card card-kpi" id="kpi-est-zerado"></div>
+          <div class="card card-kpi" id="kpi-est-baixo"></div>
+          <div class="card card-kpi" id="kpi-est-sem"></div>
+        </div>
+
+        <div class="estoque-search-bar">
+          <input type="text" id="estoque-busca" placeholder="🔍 Buscar item ou categoria…" />
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title">📦 Inventário Completo</span>
+          </div>
+          <div class="section-card-body-flush" id="tbl-estoque"></div>
+        </div>
+
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!--  PAGE: BOLETOS                                         -->
+      <!-- ══════════════════════════════════════════════════════ -->
+      <section id="page-boletos" class="page-section">
+
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2>Boletos e Vencimentos</h2>
+            <p>Calendário de compromissos financeiros futuros</p>
+          </div>
+        </div>
+
+        <div class="kpi-grid kpi-grid-4" style="margin-bottom:20px;">
+          <div class="card card-kpi glow-orange" id="kpi-bol-7"></div>
+          <div class="card card-kpi"             id="kpi-bol-15"></div>
+          <div class="card card-kpi"             id="kpi-bol-30"></div>
+          <div class="card card-kpi glow-red"    id="kpi-bol-venc"></div>
+        </div>
+
+        <div class="filter-tabs">
+          <button class="boleto-filter-btn active" data-dias="">Todos</button>
+          <button class="boleto-filter-btn" data-dias="7">Próximos 7 dias</button>
+          <button class="boleto-filter-btn" data-dias="15">15 dias</button>
+          <button class="boleto-filter-btn" data-dias="30">30 dias</button>
+          <button class="boleto-filter-btn" data-dias="90">90 dias</button>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title">📋 Boletos</span>
+          </div>
+          <div class="section-card-body-flush" id="tbl-boletos"></div>
+        </div>
+
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!--  PAGE: HISTÓRICO                                       -->
+      <!-- ══════════════════════════════════════════════════════ -->
+      <section id="page-historico" class="page-section">
+
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2>Histórico Mensal</h2>
+            <p>Evolução financeira ao longo dos meses</p>
+          </div>
+        </div>
+
+        <div class="charts-grid charts-2col" style="margin-bottom:16px;">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">Resultado Mensal</div>
+              </div>
+            </div>
+            <div class="chart-container chart-container-lg">
+              <canvas id="chart-hist-fluxo"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">Receitas × Despesas</div>
+              </div>
+            </div>
+            <div class="chart-container chart-container-lg">
+              <canvas id="chart-hist-barras"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title">📅 Resumo por Mês</span>
+          </div>
+          <div class="section-card-body-flush" id="tbl-historico-mes"></div>
+        </div>
+
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!--  PAGE: CALENDÁRIO                                      -->
+      <!-- ══════════════════════════════════════════════════════ -->
+      <section id="page-calendario" class="page-section">
+
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2>Calendário Financeiro</h2>
+            <p>Entradas, saídas e boletos por dia</p>
+          </div>
+        </div>
+
+        <div class="cal-nav">
+          <button id="cal-prev">← Anterior</button>
+          <span id="cal-title">—</span>
+          <button id="cal-next">Próximo →</button>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-body">
+            <div id="calendario-grid"></div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Footer meta -->
+    <footer id="footer-meta">
+      <span id="meta-info">Carregando…</span>
+    </footer>
+
+  </div><!-- /main-wrapper -->
+
+</div><!-- /app -->
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Scripts (ordem importa) -->
+<script src="js/utils.js"></script>
+<script src="js/excel.js"></script>
+<script src="js/filters.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/tables.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
